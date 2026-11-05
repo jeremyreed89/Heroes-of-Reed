@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1a24">
+<title>Memory Trainer — Cards</title>
+<style>
+  :root {
+    --bg: #0f1a24;
+    --panel: #172633;
+    --panel2: #1f3243;
+    --line: #2d4357;
+    --text: #e8eef3;
+    --muted: #8ea3b5;
+    --accent: #4fb3ff;
+    --good: #2fbf71;
+    --bad: #e5484d;
+    --gold: #f5c451;
+    --card: #fbfaf6;
+    --card-red: #c8202f;
+    --card-black: #1b1f24;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh; min-height: 100dvh;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top));
+    background: rgba(15,26,36,.95); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 17px; margin: 0; flex: 1; letter-spacing: .3px; }
+  header h1 span { color: var(--accent); }
+  #homeBtn { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 14px; }
+  #homeBtn[hidden] { display: none; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+
+  h2 { font-size: 22px; margin: 4px 0 14px; }
+  h3 { font-size: 15px; margin: 18px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  p.sub { color: var(--muted); margin: 0 0 16px; line-height: 1.45; }
+
+  .tiles { display: grid; gap: 12px; }
+  .tile {
+    display: block; width: 100%; text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+  }
+  .tile:active { transform: scale(.99); }
+  .tile b { display: block; font-size: 18px; margin-bottom: 4px; }
+  .tile span { color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .tile .ico { float: right; font-size: 26px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--panel2); border-radius: 10px; padding: 10px 12px; }
+  .stat small { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  .stat b { font-size: 22px; }
+  .stat em { display: block; font-style: normal; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .seg { display: flex; background: var(--panel2); border-radius: 10px; padding: 3px; gap: 3px; flex-wrap: wrap; }
+  .seg button { white-space: nowrap; flex: 1; border: 0; background: none; padding: 9px 8px; border-radius: 8px; font-size: 14px; color: var(--muted); min-width: 64px; }
+  .seg button.on { background: var(--accent); color: #04121e; font-weight: 600; }
+  .field { margin-bottom: 16px; }
+  .field > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--line); background: var(--panel2); border-radius: 10px;
+    padding: 11px 16px; font-size: 15px; font-weight: 600;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #04121e; }
+  .btn.good { background: var(--good); border-color: var(--good); color: #04130b; }
+  .btn.small { padding: 7px 11px; font-size: 13px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.block { width: 100%; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .row.end { justify-content: flex-end; }
+  .spacer { flex: 1; }
+
+  /* ---------- Playing cards ---------- */
+  .card {
+    position: relative; background: var(--card); color: var(--card-black);
+    border-radius: 8%/6%; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    user-select: none; -webkit-user-select: none;
+  }
+  .card.red { color: var(--card-red); }
+  .card.big {
+    width: min(62vw, 240px); aspect-ratio: 5/7; border-radius: 14px;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  .card.big .corner { position: absolute; display: flex; flex-direction: column; align-items: center; line-height: 1; font-weight: 700; }
+  .card.big .corner .r { font-size: calc(min(62vw, 240px) * .15); }
+  .card.big .corner .s { font-size: calc(min(62vw, 240px) * .12); }
+  .card.big .tl { top: 7%; left: 7%; }
+  .card.big .br { bottom: 7%; right: 7%; transform: rotate(180deg); }
+  .card.big .mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(min(62vw, 240px) * .42); }
+  .card.big .mid.face { flex-direction: column; font-size: calc(min(62vw, 240px) * .3); font-weight: 700; }
+  .card.big .mid.face i { font-style: normal; font-size: .9em; margin-top: -4%; }
+  .card.big .mid.face { border: 2px solid currentColor; inset: 22% 20%; border-radius: 8px; opacity: .92; }
+
+  .card.mini {
+    width: 100%; aspect-ratio: 5/7; border-radius: 12%/9%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1;
+    font-size: clamp(9px, 2.7vw, 19px);
+  }
+  .card.mini .s { font-size: 1.1em; margin-top: 1px; }
+
+  /* group sizes for test display */
+  .cards3 .card.big { width: min(28vw, 180px); border-radius: 10px; }
+  .cards3 .card.big .corner .r { font-size: calc(min(28vw, 180px) * .17); }
+  .cards3 .card.big .corner .s { font-size: calc(min(28vw, 180px) * .14); }
+  .cards3 .card.big .mid { font-size: calc(min(28vw, 180px) * .42); }
+  .cards3 .card.big .mid.face { font-size: calc(min(28vw, 180px) * .28); inset: 24% 18%; }
+
+  /* ---------- Flip card ---------- */
+  .stage { display: flex; justify-content: center; margin: 8px 0 18px; perspective: 1200px; }
+  .flip { position: relative; width: min(62vw, 240px); aspect-ratio: 5/7; cursor: pointer; }
+  .flip .inner { position: absolute; inset: 0; transition: transform .45s cubic-bezier(.2,.7,.2,1); transform-style: preserve-3d; }
+  .flip.flipped .inner { transform: rotateY(180deg); }
+  .flip .face-front, .flip .face-back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .flip .face-back {
+    transform: rotateY(180deg); background: var(--panel2); border: 2px solid var(--accent); border-radius: 14px;
+    display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 16px; text-align: center;
+  }
+  .flip .face-back .tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .flip .face-back .val { font-size: 20px; font-weight: 600; word-break: break-word; }
+  .flip .face-back .val.empty { color: var(--muted); font-style: italic; font-weight: 400; font-size: 15px; }
+  .flip .face-back .mini-id { position: absolute; top: 8px; left: 10px; font-size: 14px; font-weight: 700; }
+  .flip .face-back .mini-id.red { color: #ff6b76; }
+  .hint { text-align: center; color: var(--muted); font-size: 13px; margin-top: -8px; margin-bottom: 14px; min-height: 18px; }
+
+  .judge { display: flex; justify-content: center; gap: 28px; }
+  .judge button {
+    width: 76px; height: 76px; border-radius: 50%; border: 0; font-size: 36px; font-weight: 700; color: #fff;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); transition: transform .1s, opacity .2s;
+  }
+  .judge button:active { transform: scale(.93); }
+  .judge .x { background: var(--bad); }
+  .judge .ok { background: var(--good); }
+  .judge button:disabled { opacity: .25; cursor: default; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+  .topbar b { color: var(--text); }
+  .bar { height: 5px; background: var(--panel2); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+  .bar i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+
+  .timer { font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+
+  .big-score { text-align: center; padding: 18px 10px; }
+  .big-score .pct { font-size: 64px; font-weight: 800; line-height: 1; }
+  .big-score .line { color: var(--muted); margin-top: 8px; }
+  .badge { display: inline-block; background: var(--gold); color: #2a1c00; font-weight: 700; font-size: 12px; padding: 4px 9px; border-radius: 999px; margin: 8px 4px 0; }
+
+  .miss-list { display: grid; gap: 8px; }
+  .miss { display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: center; background: var(--panel2); border-radius: 10px; padding: 8px; }
+  .miss .card.mini { font-size: 13px; }
+  .miss div small { color: var(--muted); }
+
+  /* ---------- Memorize view ---------- */
+  .show { display: flex; justify-content: center; gap: 10px; margin: 14px 0 18px; min-height: 120px; touch-action: pan-y; }
+  .navrow { display: flex; gap: 10px; }
+  .navrow .btn { flex: 1; padding: 16px; font-size: 17px; }
+
+  /* ---------- Recall view ---------- */
+  .grid13 { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+  @media (min-width: 520px) { .grid13 { gap: 5px; } }
+  .slot { position: relative; aspect-ratio: 5/7; border-radius: 12%/9%; }
+  .slot.empty { border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; color: #3e566b; font-size: clamp(8px, 2.2vw, 13px); }
+  .slot.next { border: 1.5px solid var(--accent); color: var(--accent); }
+  .slot.filled { touch-action: none; cursor: grab; }
+  .slot.filled.dragging { opacity: .25; }
+  .slot.target { outline: 2px solid var(--gold); outline-offset: 1px; border-radius: 4px; }
+  .pool .slot { cursor: pointer; }
+  .pool .slot.used .card { opacity: .13; box-shadow: none; }
+  .ghost { position: fixed; pointer-events: none; z-index: 100; transform: translate(-50%, -60%) scale(1.25); box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+  .sec-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--muted); margin: 10px 0 6px; }
+  .sec-label b { color: var(--text); font-size: 14px; }
+  .recall-actions { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding-top: 18px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+
+  /* results compare */
+  .cmp .slot.ok .card { box-shadow: 0 0 0 2px var(--good); }
+  .cmp .slot.bad .card { box-shadow: 0 0 0 2px var(--bad); }
+  .cmp .slot .want { position: absolute; left: 50%; bottom: -2px; transform: translate(-50%, 100%); font-size: clamp(7px, 1.9vw, 11px); color: var(--bad); white-space: nowrap; font-weight: 700; }
+  .cmp.grid13 { row-gap: clamp(12px, 3vw, 18px); }
+
+  /* ---------- PAO editor ---------- */
+  .pao-row { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .pao-row .card.mini { font-size: 14px; }
+  .pao-inputs { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  @media (min-width: 560px) { .pao-inputs { grid-template-columns: 1fr 1fr 1fr; } }
+  .pao-inputs input, textarea {
+    width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 9px 10px; font-size: 16px;
+  }
+  .pao-inputs input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .suit-jump { display: flex; gap: 6px; position: sticky; top: 53px; background: var(--bg); padding: 8px 0; z-index: 5; }
+  .suit-jump button { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 0; font-size: 20px; }
+  .suit-jump button.red { color: #ff6b76; }
+  .saved { color: var(--good); font-size: 13px; opacity: 0; transition: opacity .3s; }
+  .saved.show-it { opacity: 1; }
+
+  table.hist { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.hist td, table.hist th { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.hist th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧠 Memory <span>Trainer</span></h1>
+  <button id="homeBtn" hidden>⌂ Home</button>
+</header>
+<main id="app"></main>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Deck ----------
+  const SUITS = [
+    { k: 'S', sym: '♠', name: 'Spades', red: false },
+    { k: 'H', sym: '♥', name: 'Hearts', red: true },
+    { k: 'C', sym: '♣', name: 'Clubs', red: false },
+    { k: 'D', sym: '♦', name: 'Diamonds', red: true },
+  ];
+  const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const RANK_NAMES = { A: 'Ace', J: 'Jack', Q: 'Queen', K: 'King' };
+  const DECK = SUITS.flatMap(s => RANKS.map(r => r + s.k)); // ordered: spades, hearts, clubs, diamonds
+  const parse = code => ({ r: code.slice(0, -1), s: SUITS.find(s => s.k === code.slice(-1)) });
+  const cardName = code => { const { r, s } = parse(code); return `${RANK_NAMES[r] || r} of ${s.name}`; };
+  const shortName = code => { const { r, s } = parse(code); return r + s.sym; };
+
+  const shuffle = arr => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function bigCard(code) {
+    const { r, s } = parse(code);
+    const face = ['J', 'Q', 'K'].includes(r);
+    const mid = face
+      ? `<div class="mid face">${r}<i>${s.sym}</i></div>`
+      : `<div class="mid">${s.sym}</div>`;
+    return `<div class="card big ${s.red ? 'red' : ''}" aria-label="${cardName(code)}">
+      <div class="corner tl"><span class="r">${r}</span><span class="s">${s.sym}</span></div>
+      ${mid}
+      <div class="corner br"><span class="r">${r}</span><span class="s">${s.sym}</span></div>
+    </div>`;
+  }
+  function miniCard(code) {
+    const { r, s } = parse(code);
+    return `<div class="card mini ${s.red ? 'red' : ''}" aria-label="${cardName(code)}"><span>${r}</span><span class="s">${s.sym}</span></div>`;
+  }
+
+  // ---------- Storage ----------
+  const KEY_PAO = 'memtrainer.pao.v1';
+  const KEY_REC = 'memtrainer.records.v1';
+  const KEY_PREF = 'memtrainer.prefs.v1';
+  const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  let pao = load(KEY_PAO, {});
+  let records = load(KEY_REC, { best: null, fastest90: null, history: [] });
+  let prefs = Object.assign({ learnOrder: 'ordered', learnMode: 'full', testGroup: 1 }, load(KEY_PREF, {}));
+  const savePrefs = () => save(KEY_PREF, prefs);
+  const getPao = code => pao[code] || { p: '', a: '', o: '' };
+  const paoCount = () => DECK.filter(c => { const x = pao[c]; return x && (x.p || x.a || x.o); }).length;
+
+  const fmtTime = ms => {
+    if (ms == null) return '—';
+    const t = Math.max(0, ms) / 1000;
+    const m = Math.floor(t / 60);
+    const s = (t - m * 60).toFixed(1).padStart(4, '0');
+    return `${m}:${s}`;
+  };
+  const fmtDate = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // ---------- Router ----------
+  const app = document.getElementById('app');
+  const homeBtn = document.getElementById('homeBtn');
+  let cleanup = null; // per-screen teardown (timers, listeners)
+  function go(screen, ...args) {
+    if (cleanup) { cleanup(); cleanup = null; }
+    homeBtn.hidden = screen === home;
+    window.scrollTo(0, 0);
+    screen(...args);
+  }
+  homeBtn.onclick = () => {
+    if (testState && testState.phase && testState.phase !== 'results' &&
+        !confirm('Leave this test? Progress will be lost.')) return;
+    testState = null;
+    go(home);
+  };
+  const $ = sel => app.querySelector(sel);
+  const segHTML = (name, opts, cur) =>
+    `<div class="seg" data-seg="${name}">${opts.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(cur) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  function bindSeg(name, onChange) {
+    const el = app.querySelector(`[data-seg="${name}"]`);
+    el.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      onChange(b.dataset.v);
+    });
+  }
+
+  // ================= HOME =================
+  function home() {
+    const n = paoCount();
+    const b = records.best, f = records.fastest90;
+    app.innerHTML = `
+      <h2>Playing Cards</h2>
+      <p class="sub">Person · Action · Object system for a 52-card deck.</p>
+      <div class="tiles">
+        <button class="tile" data-go="learn"><span class="ico">🃏</span><b>Learn</b><span>Flash cards: see the card, tap to flip, and check your person, action, and object.</span></button>
+        <button class="tile" data-go="test"><span class="ico">⏱️</span><b>Test</b><span>Memorize a shuffled deck against the clock, then rebuild the order.</span></button>
+        <button class="tile" data-go="pao"><span class="ico">✏️</span><b>My PAO Deck</b><span>Set a person, action, and object for each card. ${n}/52 cards filled in.</span></button>
+      </div>
+      <h3>Records</h3>
+      <div class="stats">
+        <div class="stat"><small>Best accuracy</small><b>${b ? b.pct + '%' : '—'}</b><em>${b ? fmtTime(b.time) + ' · ' + fmtDate(b.date) : 'No tests yet'}</em></div>
+        <div class="stat"><small>Fastest at ≥90%</small><b>${f ? fmtTime(f.time) : '—'}</b><em>${f ? f.pct + '% · ' + fmtDate(f.date) : 'Score 90%+ to set'}</em></div>
+      </div>
+      ${records.history.length ? `
+        <h3>Recent tests</h3>
+        <div class="panel" style="padding:4px 10px">
+          <table class="hist"><tr><th>Date</th><th>Score</th><th>Time</th><th>View</th></tr>
+          ${records.history.slice(0, 10).map(h => `<tr><td>${fmtDate(h.date)}</td><td>${h.pct}%</td><td>${fmtTime(h.time)}</td><td class="muted">${h.group === 3 ? '3 at a time' : '1 at a time'}</td></tr>`).join('')}
+          </table>
+        </div>
+        <div class="row end" style="margin-top:10px"><button class="btn small" id="resetRec">Reset records</button></div>` : ''}
+    `;
+    app.querySelectorAll('[data-go]').forEach(el => el.onclick = () => go({ learn: learnSetup, test: testSetup, pao: paoEditor }[el.dataset.go]));
+    const rr = $('#resetRec');
+    if (rr) rr.onclick = () => {
+      if (!confirm('Delete all test records and history?')) return;
+      records = { best: null, fastest90: null, history: [] }; save(KEY_REC, records); go(home);
+    };
+  }
+
+  // ================= LEARN =================
+  const MODES = [['full', 'Full PAO'], ['p', 'Person'], ['a', 'Action'], ['o', 'Object']];
+  function learnSetup() {
+    const n = paoCount();
+    app.innerHTML = `
+      <h2>Learn</h2>
+      <p class="sub">Go through all 52 cards. Tap the card to flip it, then mark whether you got it right.</p>
+      ${n < 52 ? `<div class="panel" style="margin-bottom:16px;font-size:14px">⚠️ ${52 - n} cards don't have a PAO yet. <a href="#" id="toPao" style="color:var(--accent)">Fill them in</a></div>` : ''}
+      <div class="field"><label>Card order</label>${segHTML('order', [['ordered', 'In order'], ['random', 'Random']], prefs.learnOrder)}</div>
+      <div class="field"><label>What to recall</label>${segHTML('mode', MODES, prefs.learnMode)}</div>
+      <button class="btn primary block" id="start" style="margin-top:8px;padding:15px">Start · 52 cards</button>
+    `;
+    bindSeg('order', v => { prefs.learnOrder = v; savePrefs(); });
+    bindSeg('mode', v => { prefs.learnMode = v; savePrefs(); });
+    const tp = $('#toPao'); if (tp) tp.onclick = e => { e.preventDefault(); go(paoEditor); };
+    $('#start').onclick = () => {
+      const cards = prefs.learnOrder === 'random' ? shuffle(DECK) : DECK.slice();
+      go(learnSession, cards, prefs.learnMode);
+    };
+  }
+
+  function learnSession(cards, mode) {
+    let i = 0, flipped = false;
+    const results = []; // {code, ok}
+    app.innerHTML = `
+      <div class="topbar"><span>Card <b id="pos"></b> of ${cards.length}</span><span>✓ <b id="right">0</b> &nbsp; ✗ <b id="wrong">0</b></span></div>
+      <div class="bar"><i id="prog"></i></div>
+      <div class="stage"><div class="flip" id="flip"><div class="inner">
+        <div class="face-front" id="front"></div>
+        <div class="face-back" id="back"></div>
+      </div></div></div>
+      <div class="hint" id="hint">Tap the card to flip</div>
+      <div class="judge">
+        <button class="x" id="no" aria-label="Got it wrong" disabled>✗</button>
+        <button class="ok" id="yes" aria-label="Got it right" disabled>✓</button>
+      </div>
+    `;
+    const flip = $('#flip'), front = $('#front'), back = $('#back');
+    const yes = $('#yes'), no = $('#no');
+    const fields = mode === 'full' ? [['p', 'Person'], ['a', 'Action'], ['o', 'Object']]
+      : [[mode, { p: 'Person', a: 'Action', o: 'Object' }[mode]]];
+
+    function show() {
+      const code = cards[i], { s } = parse(code), d = getPao(code);
+      flipped = false;
+      flip.classList.remove('flipped');
+      yes.disabled = no.disabled = true;
+      $('#hint').textContent = 'Tap the card to flip';
+      front.innerHTML = bigCard(code);
+      // fill back after the flip-back animation so the answer isn't glimpsed
+      setTimeout(() => {
+        back.innerHTML = `<div class="mini-id ${s.red ? 'red' : ''}">${shortName(code)}</div>` +
+          fields.map(([k, label]) => `<div><div class="tag">${label}</div><div class="val ${d[k] ? '' : 'empty'}">${d[k] ? esc(d[k]) : 'not set'}</div></div>`).join('');
+      }, i === 0 ? 0 : 250);
+      $('#pos').textContent = i + 1;
+      $('#prog').style.width = (i / cards.length * 100) + '%';
+    }
+    function doFlip() {
+      flipped = !flipped;
+      flip.classList.toggle('flipped', flipped);
+      if (flipped) { yes.disabled = no.disabled = false; $('#hint').textContent = 'Did you get it?'; }
+    }
+    function mark(ok) {
+      if (yes.disabled) return;
+      results.push({ code: cards[i], ok });
+      $('#right').textContent = results.filter(r => r.ok).length;
+      $('#wrong').textContent = results.filter(r => !r.ok).length;
+      i++;
+      if (i >= cards.length) go(learnResults, results, mode);
+      else show();
+    }
+    flip.onclick = doFlip;
+    yes.onclick = () => mark(true);
+    no.onclick = () => mark(false);
+    const onKey = e => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doFlip(); }
+      else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'y') mark(true);
+      else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'n') mark(false);
+    };
+    document.addEventListener('keydown', onKey);
+    cleanup = () => document.removeEventListener('keydown', onKey);
+    show();
+  }
+
+  function learnResults(results, mode) {
+    const right = results.filter(r => r.ok).length;
+    const total = results.length;
+    const pct = Math.round(right / total * 100);
+    const missed = results.filter(r => !r.ok).map(r => r.code);
+    app.innerHTML = `
+      <div class="panel big-score">
+        <div class="pct" style="color:${pct >= 90 ? 'var(--good)' : pct >= 60 ? 'var(--gold)' : 'var(--bad)'}">${pct}%</div>
+        <div class="line">${right} of ${total} correct · ${MODES.find(m => m[0] === mode)[1]}</div>
+      </div>
+      <div class="row" style="margin:16px 0">
+        ${missed.length ? `<button class="btn primary" id="retry">Retry ${missed.length} missed</button>` : ''}
+        <button class="btn" id="again">New round</button>
+        <span class="spacer"></span>
+      </div>
+      ${missed.length ? `<h3>Missed cards</h3><div class="miss-list">${missed.map(c => {
+        const d = getPao(c);
+        return `<div class="miss">${miniCard(c)}<div>${esc(d.p) || '<small>—</small>'} <small>·</small> ${esc(d.a) || '<small>—</small>'} <small>·</small> ${esc(d.o) || '<small>—</small>'}</div></div>`;
+      }).join('')}</div>` : '<p class="sub" style="text-align:center">Perfect round! 🎉</p>'}
+    `;
+    const r = $('#retry');
+    if (r) r.onclick = () => go(learnSession, prefs.learnOrder === 'random' ? shuffle(missed) : missed, mode);
+    $('#again').onclick = () => go(learnSetup);
+  }
+
+  // ================= PAO EDITOR =================
+  function paoEditor() {
+    app.innerHTML = `
+      <h2>My PAO Deck</h2>
+      <p class="sub">Enter a person, action, and object for each card. Changes save automatically on this device. <span class="saved" id="saved">✓ Saved</span></p>
+      <div class="row" style="margin-bottom:6px">
+        <button class="btn small" id="exp">⬇ Export</button>
+        <button class="btn small" id="imp">⬆ Import</button>
+        <button class="btn small" id="paste">Paste list</button>
+        <span class="spacer"></span>
+        <button class="btn small" id="clr">Clear all</button>
+        <input type="file" id="file" accept=".json,.csv,.txt,application/json,text/csv,text/plain" hidden>
+      </div>
+      <div id="pasteBox" hidden class="panel" style="margin:10px 0">
+        <p class="sub" style="margin-bottom:8px;font-size:13px">One card per line: <code>card, person, action, object</code>. Card can be written like <code>AS</code>, <code>10H</code>, <code>K♦</code> or <code>QC</code>. Tabs work too, so you can paste from a spreadsheet.</p>
+        <textarea id="pasteTxt" rows="6" placeholder="AS, Albert Einstein, writing on a chalkboard, chalk&#10;2S, ..."></textarea>
+        <div class="row end" style="margin-top:8px"><button class="btn small" id="pasteCancel">Cancel</button><button class="btn small primary" id="pasteGo">Import</button></div>
+      </div>
+      <div class="suit-jump">${SUITS.map(s => `<button class="${s.red ? 'red' : ''}" data-jump="${s.k}" aria-label="${s.name}">${s.sym}</button>`).join('')}</div>
+      <div id="rows">
+        ${SUITS.map(s => `
+          <h3 id="suit-${s.k}">${s.sym} ${s.name}</h3>
+          ${RANKS.map(r => {
+            const c = r + s.k, d = getPao(c);
+            return `<div class="pao-row">${miniCard(c)}<div class="pao-inputs" data-c="${c}">
+              <input data-f="p" placeholder="Person" value="${esc(d.p)}" autocomplete="off" aria-label="${cardName(c)} person">
+              <input data-f="a" placeholder="Action" value="${esc(d.a)}" autocomplete="off" aria-label="${cardName(c)} action">
+              <input data-f="o" placeholder="Object" value="${esc(d.o)}" autocomplete="off" aria-label="${cardName(c)} object">
+            </div></div>`;
+          }).join('')}
+        `).join('')}
+      </div>
+    `;
+    let t;
+    const flash = () => { const s = $('#saved'); s.classList.add('show-it'); clearTimeout(t); t = setTimeout(() => s.classList.remove('show-it'), 1200); };
+    $('#rows').addEventListener('input', e => {
+      const inp = e.target.closest('input'); if (!inp) return;
+      const c = inp.parentElement.dataset.c;
+      pao[c] = Object.assign({ p: '', a: '', o: '' }, pao[c], { [inp.dataset.f]: inp.value });
+      save(KEY_PAO, pao); flash();
+    });
+    // Enter moves to next field
+    $('#rows').addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const all = [...app.querySelectorAll('.pao-inputs input')];
+      const i = all.indexOf(e.target);
+      if (i >= 0 && all[i + 1]) { e.preventDefault(); all[i + 1].focus(); }
+    });
+    app.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => {
+      const el = document.getElementById('suit-' + b.dataset.jump);
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: 'smooth' });
+    });
+    $('#exp').onclick = () => {
+      const blob = new Blob([JSON.stringify({ type: 'memtrainer-pao', version: 1, pao }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'pao-deck.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    $('#imp').onclick = () => $('#file').click();
+    $('#file').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      importText(await f.text());
+    };
+    $('#paste').onclick = () => { $('#pasteBox').hidden = false; $('#pasteTxt').focus(); };
+    $('#pasteCancel').onclick = () => { $('#pasteBox').hidden = true; };
+    $('#pasteGo').onclick = () => importText($('#pasteTxt').value);
+    $('#clr').onclick = () => {
+      if (!confirm('Clear every person, action, and object? Export first if you want a backup.')) return;
+      pao = {}; save(KEY_PAO, pao); go(paoEditor);
+    };
+  }
+
+  function parseCardCode(raw) {
+    let s = String(raw).trim().toUpperCase().replace(/\s+/g, '').replace(/OF/, '');
+    const symMap = { '♠': 'S', '♤': 'S', '♥': 'H', '♡': 'H', '♣': 'C', '♧': 'C', '♦': 'D', '♢': 'D' };
+    s = s.replace(/[♠♤♥♡♣♧♦♢]/g, m => symMap[m]);
+    s = s.replace(/SPADES?$/, 'S').replace(/HEARTS?$/, 'H').replace(/CLUBS?$/, 'C').replace(/DIAMONDS?$/, 'D');
+    s = s.replace(/^ACE/, 'A').replace(/^JACK/, 'J').replace(/^QUEEN/, 'Q').replace(/^KING/, 'K').replace(/^1(?=[SHCD]$)/, 'A').replace(/^T(?=[SHCD]$)/, '10');
+    return DECK.includes(s) ? s : null;
+  }
+  function importText(text) {
+    let added = 0, bad = 0;
+    const next = Object.assign({}, pao);
+    try {
+      const j = JSON.parse(text);
+      const src = j && j.pao ? j.pao : j;
+      for (const [k, v] of Object.entries(src || {})) {
+        const c = parseCardCode(k);
+        if (!c || typeof v !== 'object') { bad++; continue; }
+        next[c] = { p: String(v.p ?? v.person ?? ''), a: String(v.a ?? v.action ?? ''), o: String(v.o ?? v.object ?? '') };
+        added++;
+      }
+    } catch {
+      for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+        const c = parseCardCode(parts[0] || '');
+        if (!c) { bad++; continue; }
+        next[c] = { p: (parts[1] || '').trim(), a: (parts[2] || '').trim(), o: (parts.slice(3).join(',') || '').trim() };
+        added++;
+      }
+    }
+    if (!added) { alert('No cards found to import.' + (bad ? ` (${bad} lines not recognized)` : '')); return; }
+    if (!confirm(`Import ${added} card${added > 1 ? 's' : ''}? Existing entries for these cards will be replaced.` + (bad ? `\n(${bad} lines skipped)` : ''))) return;
+    pao = next; save(KEY_PAO, pao); go(paoEditor);
+  }
+
+  // ================= TEST =================
+  let testState = null;
+
+  function testSetup() {
+    testState = null;
+    app.innerHTML = `
+      <h2>Test</h2>
+      <p class="sub">A shuffled deck is shown. The clock runs while you memorize. When you finish, press <b>Done</b> (or keep cycling through the deck). Then rebuild the order by tapping cards.</p>
+      <div class="field"><label>Cards shown at a time (you can change this during the test)</label>${segHTML('grp', [[1, 'One'], [3, 'Three']], prefs.testGroup)}</div>
+      <button class="btn primary block" id="start" style="padding:15px">Shuffle & start the clock</button>
+    `;
+    bindSeg('grp', v => { prefs.testGroup = +v; savePrefs(); });
+    $('#start').onclick = () => {
+      testState = { phase: 'memorize', deck: shuffle(DECK), start: performance.now(), elapsed: 0, group: prefs.testGroup, usedThree: prefs.testGroup === 3 };
+      go(testMemorize);
+    };
+  }
+
+  function testMemorize() {
+    const st = testState;
+    let pos = 0; // index of first visible card
+    let lapped = false;
+    app.innerHTML = `
+      <div class="topbar"><span id="lbl"></span><span class="timer" id="clock">0:00.0</span></div>
+      <div class="bar"><i id="prog"></i></div>
+      <div class="row" style="justify-content:center">${segHTML('grp', [[1, '1 card'], [3, '3 cards']], st.group)}</div>
+      <div class="show" id="show"></div>
+      <div class="navrow">
+        <button class="btn" id="prev">‹ Back</button>
+        <button class="btn primary" id="next">Next ›</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <span class="muted" style="font-size:13px" id="lapnote"></span><span class="spacer"></span>
+        <button class="btn good" id="done" style="min-width:120px">Done ✓</button>
+      </div>
+    `;
+    const show = $('#show');
+    function render() {
+      const n = st.group;
+      const vis = st.deck.slice(pos, pos + n);
+      show.className = 'show' + (n === 3 ? ' cards3' : '');
+      show.innerHTML = vis.map(bigCard).join('');
+      const last = pos + vis.length;
+      $('#lbl').innerHTML = vis.length > 1 ? `Cards <b>${pos + 1}–${last}</b> of 52` : `Card <b>${pos + 1}</b> of 52`;
+      $('#prog').style.width = (last / 52 * 100) + '%';
+      $('#prev').disabled = pos === 0 && !lapped;
+      $('#next').textContent = last >= 52 ? '↺ Start over' : 'Next ›';
+      $('#lapnote').textContent = last >= 52 ? 'End of deck. Press Done or keep cycling.' : '';
+    }
+    function step(dir) {
+      const n = st.group;
+      if (dir > 0) {
+        if (pos + n >= 52) { pos = 0; lapped = true; } else pos += n;
+      } else {
+        if (pos === 0) { if (!lapped) return; pos = Math.floor(51 / n) * n; }
+        else pos = Math.max(0, pos - n);
+      }
+      render();
+    }
+    bindSeg('grp', v => {
+      st.group = +v; prefs.testGroup = st.group; savePrefs();
+      if (st.group === 3) st.usedThree = true;
+      pos = Math.floor(pos / st.group) * st.group; render();
+    });
+    $('#next').onclick = () => step(1);
+    $('#prev').onclick = () => step(-1);
+    $('#done').onclick = () => {
+      st.elapsed = performance.now() - st.start;
+      st.phase = 'ready';
+      go(testReady);
+    };
+    // swipe
+    let sx = null, sy = null;
+    show.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    show.addEventListener('touchend', e => {
+      if (sx == null) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
+      sx = null;
+    });
+    show.addEventListener('click', () => step(1));
+    const onKey = e => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); step(1); }
+      else if (e.key === 'ArrowLeft') step(-1);
+    };
+    document.addEventListener('keydown', onKey);
+    const clock = $('#clock');
+    const iv = setInterval(() => { clock.textContent = fmtTime(performance.now() - st.start); }, 100);
+    cleanup = () => { clearInterval(iv); document.removeEventListener('keydown', onKey); };
+    render();
+  }
+
+  function testReady() {
+    const st = testState;
+    app.innerHTML = `
+      <div class="panel big-score" style="margin-top:30px">
+        <div class="muted">Memorization time</div>
+        <div class="pct" style="font-size:52px;margin-top:6px">${fmtTime(st.elapsed)}</div>
+        <div class="line">The clock is stopped. Rebuild the order by tapping cards from the full deck.</div>
+      </div>
+      <button class="btn primary block" id="go" style="margin-top:18px;padding:16px;font-size:17px">I'm ready, start recall</button>
+    `;
+    $('#go').onclick = () => { st.phase = 'recall'; st.seq = []; go(testRecall); };
+  }
+
+  function testRecall() {
+    const st = testState;
+    const seq = st.seq; // array of codes in user's order
+    app.innerHTML = `
+      <div class="sec-label"><span><b>Your order</b> · tap a card to send it back, drag to move it</span><span id="cnt"></span></div>
+      <div class="grid13" id="seq"></div>
+      <div class="sec-label" style="margin-top:16px"><span><b>Deck</b> · tap cards in the order you remember</span></div>
+      <div class="grid13 pool" id="pool"></div>
+      <div class="recall-actions">
+        <div class="row">
+          <button class="btn small" id="undo">↶ Undo</button>
+          <button class="btn small" id="clear">Clear</button>
+          <span class="spacer"></span>
+          <button class="btn good" id="submit">Submit</button>
+        </div>
+      </div>
+    `;
+    const seqEl = $('#seq'), poolEl = $('#pool');
+    function render() {
+      const used = new Set(seq);
+      let h = '';
+      for (let i = 0; i < 52; i++) {
+        if (i < seq.length) h += `<div class="slot filled" data-i="${i}">${miniCard(seq[i])}</div>`;
+        else h += `<div class="slot empty ${i === seq.length ? 'next' : ''}">${i + 1}</div>`;
+      }
+      seqEl.innerHTML = h;
+      poolEl.innerHTML = DECK.map(c => `<div class="slot ${used.has(c) ? 'used' : ''}" data-c="${c}">${miniCard(c)}</div>`).join('');
+      $('#cnt').textContent = `${seq.length}/52`;
+      $('#undo').disabled = $('#clear').disabled = !seq.length;
+    }
+    poolEl.addEventListener('click', e => {
+      const s = e.target.closest('.slot'); if (!s) return;
+      const c = s.dataset.c, i = seq.indexOf(c);
+      if (i >= 0) seq.splice(i, 1); else seq.push(c);
+      render();
+    });
+    $('#undo').onclick = () => { seq.pop(); render(); };
+    $('#clear').onclick = () => { if (confirm('Clear your whole order?')) { seq.length = 0; render(); } };
+    $('#submit').onclick = () => {
+      if (seq.length < 52 && !confirm(`You've placed ${seq.length} of 52 cards. Submit anyway?`)) return;
+      finishTest();
+    };
+
+    // drag to reorder (pointer events: works with mouse and touch). A short tap removes the card.
+    seqEl.addEventListener('pointerdown', e => {
+      const el = e.target.closest('.slot.filled'); if (!el) return;
+      e.preventDefault();
+      const from = +el.dataset.i;
+      const sx = e.clientX, sy = e.clientY;
+      let dragging = false, ghost = null, target = from, lastT = null;
+      el.setPointerCapture(e.pointerId);
+      const move = ev => {
+        if (!dragging) {
+          if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 8) return;
+          dragging = true;
+          const r = el.getBoundingClientRect();
+          ghost = el.firstElementChild.cloneNode(true);
+          ghost.classList.add('ghost');
+          ghost.style.width = r.width + 'px';
+          document.body.appendChild(ghost);
+          el.classList.add('dragging');
+        }
+        ghost.style.left = ev.clientX + 'px';
+        ghost.style.top = ev.clientY + 'px';
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const t = under && under.closest('#seq .slot');
+        if (t) {
+          const idx = t.classList.contains('filled') ? +t.dataset.i : seq.length - 1;
+          target = idx;
+          if (lastT) lastT.classList.remove('target');
+          lastT = seqEl.children[idx]; if (lastT) lastT.classList.add('target');
+        }
+      };
+      const end = ev => {
+        el.removeEventListener('pointermove', move);
+        el.removeEventListener('pointerup', end);
+        el.removeEventListener('pointercancel', end);
+        if (ghost) ghost.remove();
+        if (dragging) {
+          if (ev.type !== 'pointercancel' && target !== from) { const [c] = seq.splice(from, 1); seq.splice(target, 0, c); }
+        } else if (ev.type === 'pointerup') {
+          seq.splice(from, 1);
+        }
+        render();
+      };
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', end);
+      el.addEventListener('pointercancel', end);
+    });
+
+    function finishTest() {
+      let correct = 0;
+      for (let i = 0; i < 52; i++) if (seq[i] === st.deck[i]) correct++;
+      const pct = Math.round(correct / 52 * 1000) / 10;
+      const entry = { pct, correct, time: Math.round(st.elapsed), date: Date.now(), group: st.usedThree ? 3 : 1 };
+      const badges = [];
+      if (!records.best || pct > records.best.pct || (pct === records.best.pct && entry.time < records.best.time)) {
+        if (records.best || pct > 0) badges.push('New best accuracy!');
+        records.best = entry;
+      }
+      if (pct >= 90 && (!records.fastest90 || entry.time < records.fastest90.time)) {
+        badges.push('New fastest time at 90%+!');
+        records.fastest90 = entry;
+      }
+      records.history.unshift(entry);
+      records.history = records.history.slice(0, 100);
+      save(KEY_REC, records);
+      st.phase = 'results';
+      go(testResults, entry, badges);
+    }
+    render();
+  }
+
+  function testResults(entry, badges) {
+    const st = testState;
+    const seq = st.seq;
+    app.innerHTML = `
+      <div class="panel big-score">
+        <div class="pct" style="color:${entry.pct >= 90 ? 'var(--good)' : entry.pct >= 60 ? 'var(--gold)' : 'var(--bad)'}">${entry.pct}%</div>
+        <div class="line">${entry.correct} of 52 in the right position · memorized in <b style="color:var(--text)">${fmtTime(entry.time)}</b></div>
+        ${badges.map(b => `<span class="badge">🏆 ${b}</span>`).join('')}
+      </div>
+      <div class="stats" style="margin-top:12px">
+        <div class="stat"><small>Best accuracy</small><b>${records.best ? records.best.pct + '%' : '—'}</b><em>${records.best ? fmtTime(records.best.time) : ''}</em></div>
+        <div class="stat"><small>Fastest at ≥90%</small><b>${records.fastest90 ? fmtTime(records.fastest90.time) : '—'}</b><em>${records.fastest90 ? records.fastest90.pct + '%' : 'Not set yet'}</em></div>
+      </div>
+      <div class="sec-label" style="margin-top:18px"><span><b>Your answer</b> · green = correct, red = wrong (correct card shown below)</span></div>
+      <div class="grid13 cmp">
+        ${st.deck.map((want, i) => {
+          const got = seq[i];
+          const ok = got === want;
+          return `<div class="slot ${got ? (ok ? 'ok' : 'bad') : 'empty'}">${got ? miniCard(got) : '?'}${ok ? '' : `<span class="want">${shortName(want)}</span>`}</div>`;
+        }).join('')}
+      </div>
+      <div class="row" style="margin-top:24px">
+        <button class="btn primary" id="again">Test again</button>
+        <button class="btn" id="home2">Home</button>
+      </div>
+    `;
+    $('#again').onclick = () => go(testSetup);
+    $('#home2').onclick = () => { testState = null; go(home); };
+  }
+
+  go(home);
+})();
+</script>
+</body>
+</html>
