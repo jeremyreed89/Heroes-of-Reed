@@ -123,7 +123,7 @@
       <div class="card">
         <h1>Heroes of Reed</h1>
         <div class="sub">A duel upon the green fields</div>
-        <p>Sir Reed's <b style="color:#a01818">Crimson Guard</b> meets Vaela's <b style="color:#1840a0">Azure Sentinels</b>.</p>
+        <p>Sir Reed's <b style="color:#a01818">Sherlock</b> squad meets Vaela's <b style="color:#1840a0">Lestrade</b> squad.</p>
         <ul>
           <li>Click a shaded hex to move. Click the enemy to attack — the side of the enemy you point at picks where you attack from.</li>
           <li>Each stack retaliates once per round.</li>
@@ -185,8 +185,8 @@ const TEAM = {
 };
 
 const UNIT_DEFS = {
-  red:  { name: 'Crimson Guard',   count: 30, hp: 15, att: 7, def: 6, dmin: 3, dmax: 5, speed: 5, start: { c: 0,  r: 5 } },
-  blue: { name: 'Azure Sentinels', count: 24, hp: 20, att: 6, def: 8, dmin: 3, dmax: 6, speed: 6, start: { c: 14, r: 5 } },
+  red:  { name: 'Sherlock', count: 30, hp: 15, att: 7, def: 6, dmin: 3, dmax: 5, speed: 5, start: { c: 0,  r: 5 } },
+  blue: { name: 'Lestrade', count: 24, hp: 20, att: 6, def: 8, dmin: 3, dmax: 6, speed: 6, start: { c: 14, r: 5 } },
 };
 
 const HERO_DEFS = {
@@ -442,7 +442,7 @@ function startRound() {
 function tickEffects() {
   for (const u of G.units) {
     for (const k of Object.keys(u.eff)) {
-      if (u.eff[k] > 0 && --u.eff[k] === 0) log(`${k === 'stoneskin' ? 'Stone Skin' : 'Bloodlust'} wears off the ${u.name}.`);
+      if (u.eff[k] > 0 && --u.eff[k] === 0) log(`${k === 'stoneskin' ? 'Stone Skin' : 'Bloodlust'} wears off ${u.name}.`);
     }
   }
 }
@@ -475,7 +475,7 @@ function checkEnd() {
   if (!dead || G.over) return false;
   G.over = true; G.busy = true;
   const winner = enemyOf(dead);
-  log(`The ${dead.name} are destroyed! ${heroOf(winner).name} is victorious.`);
+  log(`${dead.name} is defeated! ${heroOf(winner).name} is victorious.`);
   updateUI();
   setTimeout(() => showEnd(winner.side), 900);
   return true;
@@ -506,7 +506,7 @@ async function strike(att, def, retal) {
   const killed = applyDamage(def, dmg);
   def.flash = 1;
   floater(def.x, def.y - 50, `-${dmg}`, '#ffdddd');
-  log(`${retal ? 'The ' + att.name + ' retaliate' : 'The ' + att.name + ' attack'}: ${dmg} damage, ${killed} ${def.name} perish.`);
+  log(`${att.name} ${retal ? 'strikes back' : 'attacks'}: ${dmg} damage, ${killed} ${def.name} knocked out.`);
   await tween(190, k => { att.armA = 1.6 + (rest - 1.6) * k; att.ox = dx * .32 * (1 - ease(k)); att.oy = dy * .32 * (1 - ease(k)); });
   att.armA = null;
   if (!def.alive) await dieAnim(def);
@@ -533,14 +533,14 @@ async function doWait(u) {
   if (u.waited) return;
   u.waited = true;
   G.queue.push(u);
-  log(`The ${u.name} wait.`);
+  log(`${u.name} waits.`);
   await endTurn();
 }
 async function doDefend(u) {
   G.busy = true;
   u.defending = true;
   u.glow = 1;
-  log(`The ${u.name} take a defensive stance.`);
+  log(`${u.name} takes a defensive stance.`);
   await endTurn();
 }
 
@@ -569,14 +569,14 @@ async function castSpell(side, spell) {
     const killed = applyDamage(target, dmg);
     target.flash = 1;
     floater(target.x, target.y - 34, `-${dmg}`, '#cfe0ff');
-    log(`Magic Arrow deals ${dmg} damage, ${killed} ${target.name} perish.`);
+    log(`Magic Arrow deals ${dmg} damage, ${killed} ${target.name} knocked out.`);
     if (!target.alive) { await dieAnim(target); checkEnd(); return; }
   } else if (spell.id === 'cure') {
     const heal = Math.min(10 + p * 5, target.hp - target.topHp);
     target.topHp += heal;
     target.glow = 1;
     floater(target.x, target.y - 34, `+${heal}`, '#c8ffc0');
-    log(`Cure restores ${heal} HP to the ${target.name}.`);
+    log(`Cure restores ${heal} HP to ${target.name}.`);
   } else {
     target.eff[spell.id] = p + 2;
     target.glow = 1;
@@ -670,9 +670,9 @@ function describe(act) {
   if (!act) return defaultStatus();
   if (act.type === 'attack') {
     const [lo, hi] = dmgRange(u, act.target);
-    return `Attack the ${act.target.name} (damage ${lo}–${hi}, kills ${killsFor(act.target, lo)}–${killsFor(act.target, hi)})`;
+    return `Attack ${act.target.name} (damage ${lo}–${hi}, kills ${killsFor(act.target, lo)}–${killsFor(act.target, hi)})`;
   }
-  if (act.type === 'move') return `Move the ${u.name} here`;
+  if (act.type === 'move') return `Move ${u.name} here`;
   if (act.type === 'info') {
     const t = act.unit;
     return `${t.count} ${t.name} — HP ${t.topHp}/${t.hp}, Att ${atkOf(t)}, Def ${defOf(t)}, Speed ${t.speed}${act.far ? ' (out of reach)' : ''}`;
@@ -739,7 +739,7 @@ function updateUI() {
   btnDefend.disabled = !can;
   btnSpell.disabled = !can || !canCast(G.active.side);
   btnRetreat.disabled = !G || G.over || (G.mode === 'ai' && !can);
-  if (G && G.active && isAI(G.active.side)) setStatus(`${heroOf(G.active).name}'s ${G.active.name} are thinking…`);
+  if (G && G.active && isAI(G.active.side)) setStatus(`${G.active.name} is thinking…`);
   // queue
   queueEl.innerHTML = '';
   if (!G) return;
@@ -786,7 +786,7 @@ function showEnd(winSide) {
   if (G.mode === 'ai') title.textContent = winSide === 'red' ? 'Victory!' : 'Defeat';
   else title.textContent = `${TEAM[winSide].name} wins!`;
   const w = unitOf(winSide);
-  document.getElementById('endText').textContent = `${heroOf(w).name} and the ${w.name} hold the field after ${G.round} round${G.round > 1 ? 's' : ''}.`;
+  document.getElementById('endText').textContent = `${heroOf(w).name} and ${w.name} hold the field after ${G.round} round${G.round > 1 ? 's' : ''}.`;
   document.getElementById('endCas').innerHTML =
     `Casualties — <b style="color:#a01818">${r.name}</b>: ${r.startCount - r.count} of ${r.startCount} · ` +
     `<b style="color:#1840a0">${b.name}</b>: ${b.startCount - b.count} of ${b.startCount}`;
