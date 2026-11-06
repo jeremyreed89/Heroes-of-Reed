@@ -1,13 +1,13 @@
 # Heroes of Reed
 
-A small single-file HTML combat game in the style of classic hex-grid fantasy strategy battles.
+A single-file HTML 2-vs-2 hex-grid battle game in the style of classic fantasy strategy combat.
 
 Open `index.html` in any browser — no build step.
 
-- 15×11 hex battlefield on a grassy field with random rocks and bushes
-- One red stack vs one blue stack (squares), with mounted heroes at each side
-- Turn order by speed, move/attack, retaliation once per round, Wait, Defend
-- Hero spellbook (Magic Arrow, Cure, Stone Skin, Bloodlust), one cast per round
-- Play vs computer (you are Red) or hot-seat for 2 players
+- Character select: 4 player slots (P1 & P2 = Left Team, P3 & P4 = Right Team), each Human or CPU
+- Roster: Leonardo, Raphael, Donatello, Michelangelo (add more in the `ROSTER` list in `index.html`)
+- A roulette picks the turn order once at the start; that order repeats every round
+- Mounted hero in each corner; each hero may cast one spell per round (click to pick the target)
+- Move/attack, one retaliation per round, Wait, Defend; a team loses when both its units are knocked out
 
-Keys: `W` wait, `D` defend, `S` spellbook, `Esc` close spellbook.
+Keys: `W` wait, `D` defend, `S` spellbook, `Esc` close spellbook / cancel spell.
